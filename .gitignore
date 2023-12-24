@@ -1,22 +1,13 @@
 __pycache__
-data 
-data/*/
-data/*/*
-!data/preprocessing/
+# data 
+# data/*/
+# data/*/*
+
 pretrained/*/
 results
 neural_renderer
 *.zip
 unchanged/
-cvpr23_results/
-# slurm.bash
-results
-results/*/
-results/*
-results/*/*
-results/dor_checkpoints/*
-results/dor_checkpoints/*/*
-results/dor_checkpoints/*/*/* 
 
 
 .vscode
