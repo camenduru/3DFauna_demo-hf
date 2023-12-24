@@ -1,6 +1,8 @@
 --extra-index-url https://download.pytorch.org/whl/cu113
-torch==1.10.0
-torchvision==0.11.0
+torch==1.10.0+cu113
+torchvision==0.11.0+cu113
+fvcore
+iopath
 ConfigArgParse==1.5.3
 einops==0.4.1
 fire==0.5.0
@@ -21,4 +23,7 @@ transformers==4.28.1
 trimesh==4.0.0
 wandb==0.14.2
 xatlas==0.0.7
+tensorboard==2.10.0
 git+https://github.com/NVlabs/nvdiffrast/
+opencv-python
+opencv_contrib_python
