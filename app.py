@@ -6,6 +6,7 @@ from functools import partial
 import argparse
 
 os.system('pip install --global-option="--no-networks" git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch')
+os.system('pip install "git+https://github.com/facebookresearch/pytorch3d.git@stable"')
 
 import cv2
 import time
