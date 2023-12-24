@@ -4,9 +4,21 @@ import gradio as gr
 from PIL import Image
 from functools import partial
 import argparse
+import sys
+import torch
 
-os.system('pip install --global-option="--no-networks" git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch')
-os.system('pip install "git+https://github.com/facebookresearch/pytorch3d.git@stable"')
+if os.getenv('SYSTEM') == 'spaces':
+    os.system('pip install --global-option="--no-networks" git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch')
+
+    pyt_version_str=torch.__version__.split("+")[0].replace(".", "")
+    version_str="".join([
+        f"py3{sys.version_info.minor}_cu",
+        torch.version.cuda.replace(".",""),
+        f"_pyt{pyt_version_str}"
+    ])
+    os.system('pip install fvcore iopath')
+    os.system(f'pip install --no-index --no-cache-dir pytorch3d -f https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/{version_str}/download.html')
+    # os.system('pip install "git+https://github.com/facebookresearch/pytorch3d.git@stable"')
 
 import cv2
 import time
@@ -16,7 +28,6 @@ from segment_anything import sam_model_registry, SamPredictor
 
 import random
 from pytorch3d import transforms
-import torch
 import torchvision
 import torch.distributed as dist
 import nvdiffrast.torch as dr
