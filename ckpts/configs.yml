@@ -1,0 +1,354 @@
+amb_diff_max:
+- 1.0
+- 1.0
+amb_diff_min:
+- 0.0
+- 0.5
+arti_reg_loss_epochs:
+- 8
+- 276
+arti_reg_loss_weight: 0.2
+articulation_arch: attention
+articulation_epochs:
+- 2
+- 276
+articulation_feature_mode: sample+global
+articulation_multiplier: 0.1
+attach_legs_to_body_epochs:
+- 8
+- 276
+avg_seqshape_epochs:
+- 0
+- 0
+avg_texture_epochs:
+- 0
+- 0
+background_mode: none
+backward_prior: true
+bank_mean_dist_loss_weight: 0.0
+batch_size: 6
+best_pose_start_iter: 10000
+blur_mask: false
+body_bone_idx_preset:
+  0:
+  - 0
+  - 0
+  - 0
+  - 0
+  500000:
+  - 0
+  - 0
+  - 0
+  - 0
+body_bones_type: z_minmax_y+
+body_rotate_reg_mode: all-bones
+bone_y_thresh: 0.4
+bsdf: diffuse
+cam_pos_z_offset: 10
+checkpoint_dir: /viscam/u/zzli/workspace/4DAnimalKingdom_dev/results/paper_exp/same_dino_1109/mb_all_data_1k_artiID_r500k
+clip_tex: false
+clip_tex_loss_weight: 0.0
+combine_dataset: true
+config: config/zzli_exp/same_dino_1109/mb_data1k_artiID_r500k.yml
+constrain_legs: false
+crop_fov_approx: 25
+data_loader_mode: n_frame
+dataset: video
+debug_seq: false
+deform_epochs:
+- 0
+- 276
+deformation_reg_loss_weight: 10.0
+device: cuda:0
+diffusion_albedo_ratio: 0.2
+diffusion_angle_front: 60
+diffusion_angle_overhead: 30
+diffusion_append_prompt_directions: true
+diffusion_guidance_scale: 100
+diffusion_light_ambient: 0.5
+diffusion_light_diffuse: 0.8
+diffusion_loss_weight: 0.0001
+diffusion_max_step: 0.6
+diffusion_num_random_cameras: 1
+diffusion_phi_offset: 180
+diffusion_precision: float16
+diffusion_prompt: an elephant
+diffusion_radius_range:
+- 9
+- 11
+diffusion_random_light: true
+diffusion_resolution: 256
+diffusion_shading_ratio: 0.4
+diffusion_theta_range:
+- 0
+- 100
+diffusion_uniform_sphere_rate: 1
+dim_of_classes: 128
+dino_feat_im_loss_weight:
+  0: 10.0
+  300000: 1.0
+dino_feature_dim: 16
+dino_feature_input: false
+dino_feature_recon_dim: 16
+dino_max: 1.0
+dino_min: 0.0
+disable_fewshot: false
+disc_gt: false
+disc_iv: true
+disc_iv_label: Real
+disc_reg_mul: 10.0
+discriminator_loss_weight: 1.0
+dmtet_grid: 256
+dmtet_grid_smaller: 256
+dmtet_grid_smaller_epoch: 1
+embed_concat_pts: true
+embedder_freq_arti: 8
+embedder_freq_deform: 10
+embedder_freq_dino: 8
+embedder_freq_shape: 8
+embedder_freq_tex: 10
+enable_articulation: true
+enable_articulation_bone_threshold: true
+enable_articulation_idadd: true
+enable_deform: true
+enable_disc: true
+enable_encoder: true
+enable_lighting: true
+enable_mask_distribution: true
+enable_memory_bank: true
+enable_pose: true
+enable_prior: true
+enable_sds: false
+encoder_arch: vit
+encoder_frozen: true
+encoder_pretrained: true
+enhance_back_view: true
+enhance_back_view_path: /viscam/u/zzli/workspace/Animal-Data-Engine/data/data_resize_update/segmented_back_view_data
+extra_renders:
+  instance:
+  - geo_normal
+  - diffuse
+  - gray
+faces_per_pixel: 10
+few_shot_category_num: -1
+few_shot_class_vector_init: copy
+few_shot_data_dir:
+- /viscam/u/zzli/workspace/Animal-Data-Engine/data/data_resize_update/few_shot_data_all
+- /viscam/projects/articulated/dor/Animal-Data-Engine/data/data_resize_update/train_with_classes_filtered
+few_shot_iteration_save: true
+few_shot_iteration_save_freq: 2000
+few_shot_lr: 0.0001
+few_shot_optimize: exp
+few_shot_optimize_bank: all
+few_shot_original_classes_num: 7
+few_shot_resume: true
+few_shot_test_category_names:
+- caracal
+- impala
+- ox
+- squirrel
+- wolf
+few_shot_test_category_num: 5
+few_shot_val_image_num: 5
+fix_viz_batch: false
+flow_loss_epochs:
+- 0
+- 0
+flow_loss_weight: 0.0
+forbid_leg_rotate: true
+fov_w: 60
+full_size_h: 1080
+full_size_w: 1920
+gamma: 1e-6
+gan_tex: false
+grid_scale: 7
+hidden_size: 256
+in_image_size: 256
+init_sdf: ellipsoid
+is_dry_run: false
+iter_arti_reg_loss_start: 60000
+iter_articulation_start: 20000
+iter_attach_leg_to_body_start: 60000
+iter_deformation_start: 500000
+iter_leg_rotation_start: 300000
+iter_nozeroy_start: 20000
+jitter_grid: 0.05
+kd_max:
+- 1.0
+- 1.0
+- 1.0
+- 1.0
+kd_min:
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+keep_num_checkpoint: 1
+ks_max:
+- 0.0
+- 0.0
+- 0.0
+ks_min:
+- 0.0
+- 0.0
+- 0.0
+latent_dim: 256
+load_dino_cluster: false
+load_dino_feature: true
+log_freq_images: 501
+log_freq_losses: 50
+log_train_images: true
+logit_loss_dino_feat_im_loss_multiplier:
+  0: 50.0
+  300000: 500.0
+logit_loss_weight: 1.0
+lookat_init:
+- 0.0
+- 0.0
+- 0.0
+lookat_zeroy: true
+lr: 6.0e-05
+mask_disc_loss_feat_condition: true
+mask_disc_loss_weight: 0.1
+mask_discriminator_iter:
+- 80000
+- 300000
+mask_distribution_loss_freq: 1
+mask_distribution_loss_weight: 0.0
+mask_distribution_path: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/mask_distribution
+max_arti_angle: 60
+max_trans_xy_range_ratio: 0.5
+max_trans_z_range_ratio: 0.5
+memory_bank_init: copy
+memory_bank_size: 60
+memory_bank_topk: 10
+memory_encoder: DINO
+memory_retrieve: cos-linear
+mesh_edge_length_loss_weight: 0.0
+mesh_normal_consistency_loss_weight: 0.0
+min_seq_len: 1
+nrm_max:
+- 1.0
+- 1.0
+- 1.0
+nrm_min:
+- -1.0
+- -1.0
+- 0.0
+num_body_bones: 8
+num_epochs: 1375
+num_iterations: 10000000
+num_layers_arti: 4
+num_layers_deform: 5
+num_layers_dino: 5
+num_layers_light: 5
+num_layers_tex: 8
+num_leg_bones: 3
+num_legs: 4
+num_sample_frames: 1
+num_workers: 8
+out_image_size: 256
+perturb_articulation_epochs:
+- 0
+- 0
+perturb_normal: false
+perturb_sdf: false
+pose_arch: encoder_dino_patch_key
+pose_entropy_loss_weight: 0.0
+pose_epochs:
+- 0
+- 0
+pose_xflip_recon_epochs:
+- 0
+- 0
+pose_xflip_reg_loss_weight: 0.0
+prior_condition_choice: mod
+prior_lr: 0.0006
+prior_sdf_mode: mlp
+pyplot_metrics: false
+random_flip_train: true
+random_mask_law: random_azimuth
+random_sample_train_frames: false
+random_sample_val_frames: true
+rank: 0
+reg_body_rotate_mult: 0.1
+render_dino_mode: feature_mlp
+renderer_spp: 4
+resume: true
+resume_prior_optim: true
+rgb_loss_weight: 1.0
+rgb_suffix: .png
+root_dir: /viscam/u/zzli
+rot_all_quad_epochs:
+- 0
+- 276
+rot_rand_quad_epochs:
+- 0
+- 0
+rot_rep: quadlookat
+rot_temp_scalar: 1.0
+run_few_shot: true
+run_train: true
+save_checkpoint_freq: 1
+save_result_freq: 501
+sdf_bce_reg_loss_min_weight: 0
+sdf_bce_reg_loss_weight: 0
+sdf_gradient_reg_loss_min_weight: 0.1
+sdf_gradient_reg_loss_weight: 0.1
+sdf_inflate_reg_loss_epochs:
+- 0
+- 0
+sdf_reg_decay_start_iter: 10000
+seed: 0
+seqshape_epochs:
+- 0
+- 0
+shuffle_train_seqs: true
+sigma: 1e-6
+silhouette_dt_loss_weight: 0.0
+silhouette_inv_dt_loss_weight: 50.0
+silhouette_loss_weight: 5.0
+skinning_temperature: 0.05
+skip_beginning: 0
+skip_end: 0
+small_leg_angle: true
+smooth_deformation_loss_weight: 10.0
+static_root_bones: false
+sym_deform: true
+sym_dino: false
+sym_prior_shape: true
+sym_texture: true
+temp_clip_high: 10.0
+temp_clip_low: 1.0
+tex_im_size: 256
+texture_epochs:
+- 0
+- 276
+texture_mode: mlp
+train_data_dir:
+  bear: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/bear_comb_dinov2_new/train
+  cow: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/cow_comb_dinov2_new/train
+  elephant: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/elephant_comb_dinov2_new/train
+  giraffe: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/giraffe_comb_dinov2_new/train
+  horse: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/horse_comb_dinov2_new/train
+  sheep: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/sheep_comb_dinov2_new/train
+  zebra: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/zebra_comb_dinov2_new/train
+train_with_cub: false
+use_logger: true
+use_scheduler: false
+use_wandb: false
+val_data_dir:
+  bear: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/bear_comb_dinov2_new/val
+  cow: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/cow_comb_dinov2_new/val
+  elephant: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/elephant_comb_dinov2_new/val
+  giraffe: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/giraffe_comb_dinov2_new/val
+  horse: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/horse_comb_dinov2_new/val
+  sheep: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/sheep_comb_dinov2_new/val
+  zebra: /viscam/projects/articulated/dor/AnimalsMotionDataset/splitted_data/Combine_data/dinov2_new/zebra_comb_dinov2_new/val
+visualize_validation: true
+vit_final_layer_type: conv
+which_vit: dino_vits8
+world_size: 1
+zflip_epochs:
+- 0
+- 0
