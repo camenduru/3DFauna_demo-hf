@@ -41,10 +41,6 @@ from .render import mesh
 from .render import light
 from .render import render
 
-from .diffusion.sd import StableDiffusion
-from .diffusion.vsd import StableDiffusion_VSD
-from .diffusion.sd_utils import rand_poses, rand_lights, append_text_direction
-
 EPS = 1e-7
 
 
@@ -1269,53 +1265,8 @@ class Unsup3DDDP:
 
         self.enable_sds = cfgs.get('enable_sds', False)
         self.enable_vsd = cfgs.get('enable_vsd', False)
-        if self.enable_sds:
-            diffusion_torch_dtype = torch.float16 if cfgs.get('diffusion_precision', 'float16') == 'float16' else torch.float32
-
-            # decide if use SDS or VSD
-            if self.enable_vsd:
-                # self.stable_diffusion = misc.LazyClass(StableDiffusion_VSD, device=self.device, torch_dtype=diffusion_torch_dtype)
-                self.stable_diffusion = StableDiffusion_VSD(device=self.device, torch_dtype=diffusion_torch_dtype)
-                self.diffusion_guidance_scale_lora = cfgs.get('diffusion_guidance_scale_lora', 1.)
-                self.diffusion_guidance_scale = cfgs.get('diffusion_guidance_scale', 7.5)
-            else:
-                self.stable_diffusion = misc.LazyClass(StableDiffusion, device=self.device, torch_dtype=diffusion_torch_dtype)
-                self.diffusion_guidance_scale = cfgs.get('diffusion_guidance_scale', 100.)
-
-            self.diffusion_loss_weight = cfgs.get('diffusion_loss_weight', 1.)
-            self.diffusion_num_random_cameras = cfgs.get('diffusion_num_random_cameras', 1)
-
-            # For prompts
-            self.diffusion_prompt = cfgs.get('diffusion_prompt', '')
-            self.diffusion_negative_prompt = cfgs.get('diffusion_negative_prompt', '')
-
-            # For image sampling
-            self.diffusion_albedo_ratio = cfgs.get('diffusion_albedo_ratio', 0.2)
-            self.diffusion_shading_ratio = cfgs.get('diffusion_shading_ratio', 0.4)
-            self.diffusion_light_ambient = cfgs.get('diffusion_light_ambient', 0.5)
-            self.diffusion_light_diffuse = cfgs.get('diffusion_light_diffuse', 0.8)
-            self.diffusion_radius_range = cfgs.get('diffusion_radius_range', [0.8, 1.4])
-            self.diffusion_uniform_sphere_rate = cfgs.get('diffusion_uniform_sphere_rate', 0.5)
-            self.diffusion_theta_range = cfgs.get('diffusion_theta_range', [0, 120])
-            self.diffusion_phi_offset = cfgs.get('diffusion_phi_offset', 180)
-            self.diffusion_resolution = cfgs.get('diffusion_resolution', 256)
-
-            print('-----------------------------------------------')
-            print(f"!!!!!! the phi offset for diffusion is set as {self.diffusion_phi_offset}!!!!!!!!!!!!!")
-            print('-----------------------------------------------')
-
-            # For randomizing light
-            self.diffusion_random_light = cfgs.get('diffusion_random_light', False)
-            self.diffusion_light_ambient = cfgs.get('diffusion_light_ambient', 0.5)
-            self.diffusion_light_diffuse = cfgs.get('diffusion_light_diffuse', 0.8)
-
-            # For noise scheduling
-            self.diffusion_max_step = cfgs.get('diffusion_max_step', 0.98)
-
-            # For view-dependent prompting
-            self.diffusion_append_prompt_directions = cfgs.get('diffusion_append_prompt_directions', False)
-            self.diffusion_angle_overhead = cfgs.get('diffusion_angle_overhead', 30)
-            self.diffusion_angle_front = cfgs.get('diffusion_angle_front', 60)            
+        self.enable_sds = False
+        self.enable_vsd = False         
 
     @staticmethod
     def get_data_loaders(cfgs, dataset, in_image_size=256, out_image_size=256, batch_size=64, num_workers=4, run_train=False, run_test=False, train_data_dir=None, val_data_dir=None, test_data_dir=None, flow_bool=False):
@@ -2016,141 +1967,6 @@ class Unsup3DDDP:
             losses['bonevel_smooth_loss'] = bonevel_smooth_loss
             
         return losses, aux
-    
-    def score_distillation_sampling(self, shape, texture, resolution, im_features, light, prior_shape, random_light=False, prompts=None, classes_vectors=None, im_features_map=None, w2c_pred=None):
-        num_instances = im_features.shape[0]
-        n_total_random_cameras = num_instances * self.diffusion_num_random_cameras
-
-        poses, dirs = rand_poses(
-            n_total_random_cameras, self.device, radius_range=self.diffusion_radius_range, uniform_sphere_rate=self.diffusion_uniform_sphere_rate,
-            cam_z_offset=self.cam_pos_z_offset, theta_range=self.diffusion_theta_range, phi_offset=self.diffusion_phi_offset, return_dirs=True,
-            angle_front=self.diffusion_angle_front, angle_overhead=self.diffusion_angle_overhead,
-        )
-        mvp, w2c, campos = self.netInstance.get_camera_extrinsics_from_pose(poses, crop_fov_approx=self.crop_fov_approx)
-
-        if random_light:
-            lights = rand_lights(campos, fixed_ambient=self.diffusion_light_ambient, fixed_diffuse=self.diffusion_light_diffuse)
-        else:
-            lights = light
-
-        proj = util.perspective(self.crop_fov_approx / 180 * np.pi, 1, n=0.1, f=1000.0).repeat(num_instances, 1, 1).to(self.device)
-        original_mvp = torch.bmm(proj, w2c_pred)
-
-        im_features = im_features.repeat(self.diffusion_num_random_cameras, 1) if im_features is not None else None
-        num_shapes = shape.v_pos.shape[0]
-        assert n_total_random_cameras % num_shapes == 0
-        shape = shape.extend(n_total_random_cameras // num_shapes)
-
-        bg_color = torch.rand((n_total_random_cameras, 3), device=self.device) # channel-wise random
-        background = repeat(bg_color, 'b c -> b h w c', h=resolution[0], w=resolution[1])
-
-        # only train the texture
-        safe_detach = lambda x: x.detach() if x is not None else None
-        shape = safe_detach(shape)
-        im_features = safe_detach(im_features)
-        im_features_map = safe_detach(im_features_map)
-
-        set_requires_grad(texture, True)
-        set_requires_grad(light, True)
-
-        image_pred, mask_pred, _, _, albedo, shading = self.render(
-            shape, 
-            texture, 
-            mvp, 
-            w2c, 
-            campos, 
-            resolution, 
-            im_features=im_features, 
-            light=lights, 
-            prior_shape=prior_shape, 
-            dino_pred=None, 
-            spp=self.renderer_spp, 
-            bg_image=background,
-            im_features_map={"original_mvp": original_mvp, "im_features_map": im_features_map} if im_features_map is not None else None
-        )
-        if self.enable_vsd:
-            if prompts is None:
-                prompts = n_total_random_cameras * [self.diffusion_prompt]
-            else:
-                if '_' in prompts:
-                    prompts = prompts.replace('_', ' ')
-                prompts = n_total_random_cameras * [prompts]
-            
-            prompts = ['a high-resolution DSLR image of ' + x for x in prompts]
-            assert self.diffusion_append_prompt_directions
-            # TODO: check if this implementation is aligned with stable-diffusion-prompt-processor
-            prompts_vd = append_text_direction(prompts, dirs)
-            negative_prompts = n_total_random_cameras * [self.diffusion_negative_prompt]
-
-            text_embeddings = self.stable_diffusion.get_text_embeds(prompts, negative_prompts)  # [BB, 77, 768]
-            text_embeddings_vd = self.stable_diffusion.get_text_embeds(prompts_vd, negative_prompts)
-
-            camera_condition_type = 'c2w'
-            if camera_condition_type == 'c2w':
-                camera_condition = torch.linalg.inv(w2c).detach()
-            elif camera_condition_type == 'mvp':
-                camera_condition = mvp.detach()
-            else:
-                raise NotImplementedError
-
-            # Alternate among albedo, shading, and image
-            rand = torch.rand(n_total_random_cameras, device=self.device)
-            rendered_component = torch.zeros_like(image_pred)
-            mask_pred = mask_pred[:, None]
-            background = rearrange(background, 'b h w c -> b c h w')
-            albedo_flag = rand > (1 - self.diffusion_albedo_ratio)
-            rendered_component[albedo_flag] = albedo[albedo_flag] * mask_pred[albedo_flag] + (1 - mask_pred[albedo_flag]) * background[albedo_flag]
-            shading_flag = (rand > (1 - self.diffusion_albedo_ratio - self.diffusion_shading_ratio)) & (rand <= (1 - self.diffusion_albedo_ratio))
-            rendered_component[shading_flag] = shading.repeat(1, 3, 1, 1)[shading_flag] / 2 * mask_pred[shading_flag] + (1 - mask_pred[shading_flag]) * background[shading_flag]
-            rendered_component[~(albedo_flag | shading_flag)] = image_pred[~(albedo_flag | shading_flag)]
-
-            condition_label = classes_vectors
-            # condition_label = im_features
-            
-            sd_loss, sd_aux = self.stable_diffusion.train_step(
-                text_embeddings,
-                text_embeddings_vd,
-                rendered_component,
-                camera_condition,  # TODO: can we input category condition in lora?
-                condition_label,
-                guidance_scale=self.diffusion_guidance_scale,
-                guidance_scale_lora=self.diffusion_guidance_scale_lora,
-                loss_weight=self.diffusion_loss_weight,
-                max_step_pct=self.diffusion_max_step,
-                return_aux=True
-            )
-
-            aux = {'loss': sd_loss['loss_vsd'], 'loss_lora': sd_loss['loss_lora'], 'dirs': dirs, 'sd_aux': sd_aux, 'rendered_shape': shape}
-
-        else:
-            # Prompt to text embeds
-            if prompts is None:
-                prompts = n_total_random_cameras * [self.diffusion_prompt]
-            else:
-                if '_' in prompts:
-                    prompts = prompts.replace('_', ' ')
-                prompts = n_total_random_cameras * [prompts]
-            prompts = ['a high-resolution DSLR image of ' + x for x in prompts]
-            if self.diffusion_append_prompt_directions:
-                prompts = append_text_direction(prompts, dirs)
-            negative_prompts = n_total_random_cameras * [self.diffusion_negative_prompt]
-            text_embeddings = self.stable_diffusion.get_text_embeds(prompts, negative_prompts) # [2, 77, 768]
-            
-            # Alternate among albedo, shading, and image
-            rand = torch.rand(n_total_random_cameras, device=self.device)
-            rendered_component = torch.zeros_like(image_pred)
-            mask_pred = mask_pred[:, None]
-            background = rearrange(background, 'b h w c -> b c h w')
-            albedo_flag = rand > (1 - self.diffusion_albedo_ratio)
-            rendered_component[albedo_flag] = albedo[albedo_flag] * mask_pred[albedo_flag] + (1 - mask_pred[albedo_flag]) * background[albedo_flag]
-            shading_flag = (rand > (1 - self.diffusion_albedo_ratio - self.diffusion_shading_ratio)) & (rand <= (1 - self.diffusion_albedo_ratio))
-            rendered_component[shading_flag] = shading.repeat(1, 3, 1, 1)[shading_flag] / 2 * mask_pred[shading_flag] + (1 - mask_pred[shading_flag]) * background[shading_flag]
-            rendered_component[~(albedo_flag | shading_flag)] = image_pred[~(albedo_flag | shading_flag)]
-            sd_loss, sd_aux = self.stable_diffusion.train_step(
-                    text_embeddings, rendered_component, guidance_scale=self.diffusion_guidance_scale, loss_weight=self.diffusion_loss_weight, max_step_pct=self.diffusion_max_step, return_aux=True)
-            aux = {'loss':sd_loss, 'dirs': dirs, 'sd_aux': sd_aux, 'rendered_shape': shape}
-        
-        return rendered_component, aux
     
     def parse_dict_definition(self, dict_config, total_iter):
         '''
@@ -2986,19 +2802,6 @@ class Unsup3DDDP:
                 loss = loss * same_rot_idx
             final_losses[name] = loss.mean()
         final_losses['logit_loss'] = ((expandF(rot_logit) - logit_loss_target.detach())**2.).mean()
-
-        ## score distillation sampling
-        sds_random_images = None
-        if self.enable_sds:
-            prompts = None
-            if classes_vectors is not None:
-                prompts = category_name[0]
-            sds_random_images, sds_aux = self.score_distillation_sampling(shape, texture, [self.diffusion_resolution, self.diffusion_resolution], im_features, light, prior_shape, prompts=prompts, classes_vectors=class_vector[None, :].expand(batch_size * num_frames, -1), im_features_map=im_features_map, w2c_pred=w2c)
-            if self.enable_vsd:
-                final_losses.update({'vsd_loss': sds_aux['loss']})
-                final_losses.update({'vsd_lora_loss': sds_aux['loss_lora']})
-            else:
-                final_losses.update({'sds_loss': sds_aux['loss']})
 
         ## mask distribution loss
         mask_distribution_aux = None
