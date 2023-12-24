@@ -25,5 +25,5 @@ trimesh==4.0.0
 wandb==0.14.2
 xatlas==0.0.7
 git+https://github.com/NVlabs/nvdiffrast/
-git+https://github.com/NVlabs/tiny-cuda-nn@v1.6#subdirectory=bindings/torch
+git+https://github.com/NVlabs/tiny-cuda-nn@v1.7#subdirectory=bindings/torch --global-option="--no-networks"
 pytorch3d
