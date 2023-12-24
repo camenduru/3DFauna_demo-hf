@@ -1154,7 +1154,8 @@ class Unsup3DDDP:
             self.perceptual_loss_use_lin = cfgs.get('perceptual_loss_use_lin', True)
             self.perceptual_loss = lpips.LPIPS(net='vgg', lpips=self.perceptual_loss_use_lin)
 
-        self.glctx = dr.RasterizeGLContext()
+        # self.glctx = dr.RasterizeGLContext()
+        self.glctx = dr.RasterizeCudaContext()
         self.render_flow = self.cfgs.get('flow_loss_weight', 0.) > 0.
         self.extra_renders = cfgs.get('extra_renders', [])
         self.renderer_spp = cfgs.get('renderer_spp', 1)
