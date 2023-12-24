@@ -42,6 +42,8 @@ The demo only contains the 3D reconstruction part.
 '''
 _GPU_ID = 0
 
+os.system('pip install --global-option="--no-networks" git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch')
+
 if not hasattr(Image, 'Resampling'):
     Image.Resampling = Image
 
