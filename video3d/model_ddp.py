@@ -1170,99 +1170,18 @@ class Unsup3DDDP:
 
         # mask distribution
         self.enable_mask_distribution = cfgs.get('enable_mask_distribution', False)
+        self.enable_mask_distribution = False
         self.random_mask_law = cfgs.get('random_mask_law', 'batch_swap_noy') # batch_swap, batch_swap_noy, # random_azimuth # random_all
         self.mask_distribution_path = cfgs.get('mask_distribution_path', None)
-        if self.enable_mask_distribution and (self.mask_distribution_path is not None):
-            self.class_mask_distribution = {}
-            for category in os.listdir(self.mask_distribution_path):
-                # Here we assume the category names are identical
-                distribution_file = osp.join(self.mask_distribution_path, category, "raw_mask_distribution.npy")
-                distribution = np.load(distribution_file)
-                self.class_mask_distribution.update(
-                    {
-                        category: distribution # [256, 256]
-                    }
-                )
-            self.mask_distribution_loss_weight = cfgs.get("mask_distribution_loss_weight", 0.1)
-            self.mask_distribution_loss_freq = cfgs.get("mask_distribution_loss_freq", 1)
-
-            self.mask_distribution_average = cfgs.get("mask_distribution_average", False)
-
-        else:
-            self.enable_mask_distribution = False
 
         self.enable_clip = cfgs.get('enable_clip', False)
         self.enable_clip = False
-        # if self.enable_clip:
-        #     self.clip_model, _ = clip.load('ViT-B/32', self.device)
-        #     self.clip_model = self.clip_model.eval().requires_grad_(False)
-        #     self.clip_mean = [0.48145466, 0.4578275, 0.40821073]
-        #     self.clip_std = [0.26862954, 0.26130258, 0.27577711]
-        #     self.clip_reso = 224
-        #     self.clip_render_size = 64
-        #     self.enable_clip_text = cfgs.get('enable_clip_text', False)
-        #     if self.enable_clip_text:
-        #         self.clip_text_feature = {}
-        #         for category_name in ['bear', 'elephant', 'horse', 'sheep', 'cow', 'zebra', 'giraffe']:
-        #             text_input = clip.tokenize(['A photo of ' + category_name]).to(self.device)
-        #             text_feature = self.clip_model.encode_text(text_input).detach()  # [1, 512]
-        #             self.clip_text_feature.update({category_name: text_feature})
 
         self.enable_disc = cfgs.get('enable_disc', False)
-        if self.enable_disc:
-            self.mask_discriminator_iter = cfgs.get('mask_discriminator_iter', [0, 0])
-            # this module is not in netInstance or netPrior
-
-            self.mask_disc_feat_condition = cfgs.get('mask_disc_feat_condition', False)
-            if self.mask_disc_feat_condition:
-                self.mask_disc = discriminator_architecture.DCDiscriminator(in_dim=(cfgs.get('dim_of_classes', 128) + 1)).to(self.device)
-            else:
-                self.mask_disc = discriminator_architecture.DCDiscriminator(in_dim=(len(list(self.netPrior.category_id_map.keys())) + 1)).to(self.device)
-            
-            self.disc_gt = cfgs.get('disc_gt', True)
-            self.disc_iv = cfgs.get('disc_iv', False) # whether to use input view render in disc loss
-            self.disc_iv_label = cfgs.get('disc_iv_label', 'Fake')
-            self.disc_reg_mul = cfgs.get('disc_reg_mul', 10.)
-
-            self.record_mask_gt = None
-            self.record_mask_iv = None
-            self.record_mask_rv = None
-            self.discriminator_loss = 0.
-            self.discriminator_loss_weight = cfgs.get('discriminator_loss_weight', 0.1)
+        self.enable_disc = False
         
-        # the local texture for fine-tune process stage
-        if (self.cfgs.get('texture_way', None) is not None) or self.cfgs.get('gan_tex', False):
-            if self.cfgs.get('gan_tex', False):
-                self.few_shot_gan_tex = True
-                self.few_shot_gan_tex_reso = self.cfgs.get('few_shot_gan_tex_reso', 64)  # used to render novel view, will upsample to out_image_size ASAP
-                self.few_shot_gan_tex_patch = self.cfgs.get('few_shot_gan_tex_patch', 0) # used to sample patch size on out_image_size image
-                if self.few_shot_gan_tex_patch > 0:
-                    self.few_shot_gan_tex_patch_max = self.cfgs.get('few_shot_gan_tex_patch_max', 128)
-                    assert self.few_shot_gan_tex_patch_max > self.few_shot_gan_tex_patch
-                    self.few_shot_gan_tex_patch_num = self.cfgs.get('few_shot_gan_tex_patch_num', 1)
-                    self.discriminator_texture = discriminator_architecture.DCDiscriminator(in_dim=3, img_size=self.few_shot_gan_tex_patch).to(self.device)
-                else:
-                    self.discriminator_texture = discriminator_architecture.DCDiscriminator(in_dim=3, img_size=self.out_image_size).to(self.device)
-                
-                self.few_shot_gan_tex_real = self.cfgs.get('few_shot_gan_tex_real', 'gt')
-                self.few_shot_gan_tex_fake = self.cfgs.get('few_shot_gan_tex_fake', 'rv')
-            else:
-                self.few_shot_gan_tex = False
-            
-            if self.cfgs.get('clip_tex', False):
-                self.few_shot_clip_tex = True
-                self.clip_model, _ = clip.load('ViT-B/32', self.device)
-                self.clip_model = self.clip_model.eval().requires_grad_(False)
-                self.clip_mean = [0.48145466, 0.4578275, 0.40821073]
-                self.clip_std = [0.26862954, 0.26130258, 0.27577711]
-                self.clip_reso = 224
-                self.enable_clip_text = False
-            else:
-                self.few_shot_clip_tex = False
-
-        else:
-            self.few_shot_gan_tex = False
-            self.few_shot_clip_tex = False
+        self.few_shot_gan_tex = False
+        self.few_shot_clip_tex = False
 
         self.enable_sds = cfgs.get('enable_sds', False)
         self.enable_vsd = cfgs.get('enable_vsd', False)
