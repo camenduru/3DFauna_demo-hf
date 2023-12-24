@@ -5,6 +5,8 @@ from PIL import Image
 from functools import partial
 import argparse
 
+os.system('pip install --global-option="--no-networks" git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch')
+
 import cv2
 import time
 import numpy as np
@@ -41,8 +43,6 @@ The demo only contains the 3D reconstruction part.
 </div>
 '''
 _GPU_ID = 0
-
-os.system('pip install --global-option="--no-networks" git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch')
 
 if not hasattr(Image, 'Resampling'):
     Image.Resampling = Image
