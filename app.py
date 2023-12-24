@@ -98,7 +98,7 @@ def expand2square(pil_img, background_color):
         return result
 
 
-def preprocess(predictor, input_image, chk_group=None, segment=True):
+def preprocess(predictor, input_image, chk_group=None, segment=False):
     RES = 1024
     input_image.thumbnail([RES, RES], Image.Resampling.LANCZOS)
     if chk_group is not None:
@@ -403,12 +403,75 @@ def create_bones_scene(bones, joint_color=[66, 91, 140], bone_color=[119, 144, 1
     return mesh
 
 
-def run_pipeline(model_items, cfgs, input_img, device):
+def save_mesh(mesh, file_path):
+    obj_file = file_path
+    idx = 0
+    print("Writing mesh: ", obj_file)
+    with open(obj_file, "w") as f:
+        # f.write(f"mtllib {fname}.mtl\n")
+        f.write("g default\n")
+
+        v_pos = mesh.v_pos[idx].detach().cpu().numpy() if mesh.v_pos is not None else None
+        v_nrm = mesh.v_nrm[idx].detach().cpu().numpy() if mesh.v_nrm is not None else None
+        v_tex = mesh.v_tex[idx].detach().cpu().numpy() if mesh.v_tex is not None else None
+
+        t_pos_idx = mesh.t_pos_idx[0].detach().cpu().numpy() if mesh.t_pos_idx is not None else None
+        t_nrm_idx = mesh.t_nrm_idx[0].detach().cpu().numpy() if mesh.t_nrm_idx is not None else None
+        t_tex_idx = mesh.t_tex_idx[0].detach().cpu().numpy() if mesh.t_tex_idx is not None else None
+
+        print("    writing %d vertices" % len(v_pos))
+        for v in v_pos:
+            f.write('v {} {} {} \n'.format(v[0], v[1], v[2]))
+
+        if v_nrm is not None:
+            print("    writing %d normals" % len(v_nrm))
+            assert(len(t_pos_idx) == len(t_nrm_idx))
+            for v in v_nrm:
+                f.write('vn {} {} {}\n'.format(v[0], v[1], v[2]))
+
+        # faces
+        f.write("s 1 \n")
+        f.write("g pMesh1\n")
+        f.write("usemtl defaultMat\n")
+
+        # Write faces
+        print("    writing %d faces" % len(t_pos_idx))
+        for i in range(len(t_pos_idx)):
+            f.write("f ")
+            for j in range(3):
+                f.write(' %s/%s/%s' % (str(t_pos_idx[i][j]+1), '' if v_tex is None else str(t_tex_idx[i][j]+1), '' if v_nrm is None else str(t_nrm_idx[i][j]+1)))
+            f.write("\n")
+
+
+def process_mesh(shape, name):
+    mesh = shape.clone()
+    output_glb = f'./{name}.glb'
+    output_obj = f'./{name}.obj'
+
+    # save the obj file for download
+    save_mesh(mesh, output_obj)
+
+    # save the glb for visualize
+    mesh_tri = trimesh.Trimesh(
+        vertices=mesh.v_pos[0].detach().cpu().numpy(), 
+        faces=mesh.t_pos_idx[0][..., [2,1,0]].detach().cpu().numpy(), 
+        process=False,  
+        maintain_order=True
+    )
+    mesh_tri.visual.vertex_colors = (mesh.v_nrm[0][..., [2,1,0]].detach().cpu().numpy() + 1.0) * 0.5 * 255.0
+    mesh_tri.export(file_obj=output_glb)
+
+    return output_glb, output_obj
+
+
+def run_pipeline(model_items, cfgs, input_img):
     epoch = 999
     total_iter = 999999
     model = model_items[0]
     memory_bank = model_items[1]
     memory_bank_keys = model_items[2]
+
+    device = f'cuda:{_GPU_ID}'
 
     input_image = torch.stack([torchvision.transforms.ToTensor()(input_img)], dim=0).to(device)
 
@@ -455,7 +518,7 @@ def run_pipeline(model_items, cfgs, input_img, device):
         gray_light = FixedDirectionLight(direction=torch.FloatTensor([0, 0, 1]).to(device), amb=0.2, diff=0.7)
 
         image_pred, mask_pred, _, _, _, shading = model.render(
-            shape, texture_pred, mvp, w2c, campos, 256, background=model.background_mode, 
+            shape, texture_pred, mvp, w2c, campos, (256, 256), background=model.background_mode, 
             im_features=im_features, light=gray_light, prior_shape=prior_shape, render_mode='diffuse', 
             render_flow=False, dino_pred=None, im_features_map=im_features_map
         )
@@ -469,7 +532,7 @@ def run_pipeline(model_items, cfgs, input_img, device):
         nv_meshes = make_mesh(verts=bones_meshes.verts_padded(), faces=bones_meshes.faces_padded()[0:1],
                                 uvs=bones_meshes.textures.verts_uvs_padded(), uv_idx=bones_meshes.textures.faces_uvs_padded()[0:1],
                                 material=material_texture.Texture2D(bones_meshes.textures.maps_padded()))
-        buffers = render_mesh(dr.RasterizeGLContext(), nv_meshes, mvp, w2c, campos, nv_meshes.material, lgt=gray_light, feat=im_features, dino_pred=None, resolution=256, bsdf="diffuse")
+        buffers = render_mesh(dr.RasterizeGLContext(), nv_meshes, mvp, w2c, campos, nv_meshes.material, lgt=gray_light, feat=im_features, dino_pred=None, resolution=(256,256), bsdf="diffuse")
         
         shaded = buffers["shaded"].permute(0, 3, 1, 2)
         bone_image = shaded[:, :3, :, :]
@@ -481,20 +544,10 @@ def run_pipeline(model_items, cfgs, input_img, device):
         mesh_image = save_images(shading, mask_pred)
         mesh_bones_image = save_images(image_with_bones, mask_final)
 
-        final_shape = shape.clone()
-        prior_shape = prior_shape.clone()
+        shape_glb, shape_obj = process_mesh(shape, 'reconstruced_shape')
+        base_shape_glb, base_shape_obj = process_mesh(prior_shape, 'reconstructed_base_shape')
 
-        final_mesh_tri = trimesh.Trimesh(
-            vertices=final_shape.v_pos[0].detach().cpu().numpy(), 
-            faces=final_shape.t_pos_idx[0].detach().cpu().numpy(), 
-            process=False,  
-            maintain_order=True)
-        prior_mesh_tri = trimesh.Trimesh(
-            vertices=prior_shape.v_pos[0].detach().cpu().numpy(), 
-            faces=prior_shape.t_pos_idx[0].detach().cpu().numpy(), 
-            process=False,  
-            maintain_order=True)
-
+        return mesh_image, mesh_bones_image, shape_glb, shape_obj, base_shape_glb, base_shape_obj
 
 
 def run_demo():
@@ -582,7 +635,6 @@ def run_demo():
                         with gr.Column():
                             input_processing = gr.CheckboxGroup(['Use SAM to center animal'], 
                                                                 label='Input Image Preprocessing',
-                                                                 value=['Use SAM to center animal'],
                                                                  info='untick this, if animal is already centered, e.g. in example images')
                         # with gr.Column():
                         #     output_processing = gr.CheckboxGroup(['Background Removal'], label='Output Image Postprocessing', value=[]) 
@@ -599,23 +651,26 @@ def run_demo():
                     #     with gr.Column():
                     #         crop_size = gr.Number(192, label='Crop size')
                     # crop_size = 192
-                run_btn = gr.Button('Generate', variant='primary', interactive=True)
+                run_btn = gr.Button('Reconstruct', variant='primary', interactive=True)
         with gr.Row():
             view_1 = gr.Image(interactive=False, height=256, show_label=False)
             view_2 = gr.Image(interactive=False, height=256, show_label=False)
         with gr.Row():
-            shape_1 = gr.Model3D(clear_color=[0.0, 0.0, 0.0, 0.0],  label="Reconstructed Model")
-            shape_2 = gr.Model3D(clear_color=[0.0, 0.0, 0.0, 0.0],  label="Bank Base Shape Model")
+            shape_1 = gr.Model3D(clear_color=[0.0, 0.0, 0.0, 0.0],  height=512, label="Reconstructed Model")
+            shape_1_download = gr.File(label="Download Full Reconstructed Model")
+        with gr.Row():
+            shape_2 = gr.Model3D(clear_color=[0.0, 0.0, 0.0, 0.0],  height=512, label="Bank Base Shape Model")
+            shape_2_download = gr.File(label="Download Full Bank Base Shape Model")
 
         run_btn.click(fn=partial(preprocess, predictor), 
                         inputs=[input_image, input_processing], 
                         outputs=[processed_image_highres, processed_image], queue=True
             ).success(fn=partial(run_pipeline, model_items, model_cfgs), 
-                        inputs=[processed_image, device],
-                        outputs=[view_1, view_2, shape_1, shape_2]
+                        inputs=[processed_image],
+                        outputs=[view_1, view_2, shape_1, shape_1_download, shape_2, shape_2_download]
                         )
         demo.queue().launch(share=True, max_threads=80)
-        # _, local_url, share_url = demo.launch(share=True, server_name="0.0.0.0", server_port=23425)
+        # _, local_url, share_url = demo.queue().launch(share=True, server_name="0.0.0.0", server_port=23425)
         # print('local_url: ', local_url)
 
 
