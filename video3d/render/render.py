@@ -14,6 +14,8 @@ from . import util
 from . import renderutils as ru
 from . import light
 
+from .texture import Texture2D
+
 # ==============================================================================================
 #  Helper functions
 # ==============================================================================================
@@ -51,7 +53,9 @@ def shade(
     perturbed_nrm = None
     # Combined texture, used for MLPs because lookups are expensive
     # all_tex_jitter = material.sample(gb_tex_pos + torch.normal(mean=0, std=0.01, size=gb_tex_pos.shape, device="cuda"), feat=feat)
-    if material is not None:
+    if isinstance(material, Texture2D):
+        all_tex = material.sample(gb_texc, gb_texc_deriv)
+    elif material is not None:
         if im_features_map is None:
             all_tex = material.sample(gb_tex_pos, feat=feat)
         else:
@@ -87,7 +91,7 @@ def shade(
     ################################################################################
     # Normal perturbation & normal bend
     ################################################################################
-    if material is None or not material.perturb_normal:
+    if material is None or isinstance(material, Texture2D) or not material.perturb_normal:
         perturbed_nrm = None
 
     gb_normal = ru.prepare_shading_normal(gb_pos, view_pos, perturbed_nrm, gb_normal, gb_tangent, gb_geometric_normal, two_sided_shading=two_sided_shading, opengl=True, use_python=True)
