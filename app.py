@@ -17,7 +17,7 @@ import cv2
 import time
 import numpy as np
 import trimesh
-from segment_anything import sam_model_registry, SamPredictor
+from segment_anything import build_sam, SamPredictor
 
 import random
 from pytorch3d import transforms
@@ -56,9 +56,9 @@ if not hasattr(Image, 'Resampling'):
 def sam_init():
     sam_checkpoint = os.path.join(os.path.dirname(__file__), "sam_pt", "sam_vit_h_4b8939.pth")
     model_type = "vit_h"
-
-    sam = sam_model_registry[model_type](checkpoint=sam_checkpoint).to(device=f"cuda:{_GPU_ID}")
-    predictor = SamPredictor(sam)
+    # sam = sam_model_registry[model_type](checkpoint=sam_checkpoint).to(device=f"cuda:{_GPU_ID}")
+    # predictor = SamPredictor(sam)
+    predictor = SamPredictor(build_sam(checkpoint=sam_checkpoint).to("cuda"))
     return predictor
 
 
@@ -518,7 +518,7 @@ def run_demo():
     torch.cuda.set_device(_GPU_ID)
     args.rank = _GPU_ID
     args.world_size = 1
-    args.gpu = os.environ['CUDA_VISIBLE_DEVICES']
+    args.gpu = f'{_GPU_ID}'
     device = f'cuda:{_GPU_ID}'
 
     resolution = (256, 256)
@@ -607,11 +607,6 @@ def run_demo():
             shape_1 = gr.Model3D(clear_color=[0.0, 0.0, 0.0, 0.0],  label="Reconstructed Model")
             shape_2 = gr.Model3D(clear_color=[0.0, 0.0, 0.0, 0.0],  label="Bank Base Shape Model")
 
-        with gr.Row():
-            view_gallery = gr.Gallery(interactive=False, show_label=False, container=True, preview=True,  allow_preview=False, height=1200)
-            normal_gallery = gr.Gallery(interactive=False, show_label=False, container=True, preview=True, allow_preview=False, height=1200)
-        
-
         run_btn.click(fn=partial(preprocess, predictor), 
                         inputs=[input_image, input_processing], 
                         outputs=[processed_image_highres, processed_image], queue=True
@@ -620,6 +615,8 @@ def run_demo():
                         outputs=[view_1, view_2, shape_1, shape_2]
                         )
         demo.queue().launch(share=True, max_threads=80)
+        # _, local_url, share_url = demo.launch(share=True, server_name="0.0.0.0", server_port=23425)
+        # print('local_url: ', local_url)
 
 
 if __name__ == '__main__':
