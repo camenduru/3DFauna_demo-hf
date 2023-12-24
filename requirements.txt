@@ -22,4 +22,4 @@ trimesh==4.0.0
 wandb==0.14.2
 xatlas==0.0.7
 git+https://github.com/NVlabs/nvdiffrast/
-pytorch3d
+pytorch3d==0.7.2
