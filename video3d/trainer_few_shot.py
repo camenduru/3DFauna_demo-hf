@@ -8,7 +8,7 @@ import random
 import copy
 import imageio
 import torch
-import clip
+# import clip
 import torchvision.transforms.functional as tvf
 import video3d.utils.meters as meters
 import video3d.utils.misc as misc
