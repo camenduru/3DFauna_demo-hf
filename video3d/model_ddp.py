@@ -24,7 +24,7 @@ from .utils.skinning_v4 import estimate_bones, skinning
 import lpips
 from einops import rearrange, repeat
 
-import clip
+# import clip
 import torchvision.transforms.functional as tvf
 from . import discriminator_architecture
 
@@ -1195,20 +1195,21 @@ class Unsup3DDDP:
             self.enable_mask_distribution = False
 
         self.enable_clip = cfgs.get('enable_clip', False)
-        if self.enable_clip:
-            self.clip_model, _ = clip.load('ViT-B/32', self.device)
-            self.clip_model = self.clip_model.eval().requires_grad_(False)
-            self.clip_mean = [0.48145466, 0.4578275, 0.40821073]
-            self.clip_std = [0.26862954, 0.26130258, 0.27577711]
-            self.clip_reso = 224
-            self.clip_render_size = 64
-            self.enable_clip_text = cfgs.get('enable_clip_text', False)
-            if self.enable_clip_text:
-                self.clip_text_feature = {}
-                for category_name in ['bear', 'elephant', 'horse', 'sheep', 'cow', 'zebra', 'giraffe']:
-                    text_input = clip.tokenize(['A photo of ' + category_name]).to(self.device)
-                    text_feature = self.clip_model.encode_text(text_input).detach()  # [1, 512]
-                    self.clip_text_feature.update({category_name: text_feature})
+        self.enable_clip = False
+        # if self.enable_clip:
+        #     self.clip_model, _ = clip.load('ViT-B/32', self.device)
+        #     self.clip_model = self.clip_model.eval().requires_grad_(False)
+        #     self.clip_mean = [0.48145466, 0.4578275, 0.40821073]
+        #     self.clip_std = [0.26862954, 0.26130258, 0.27577711]
+        #     self.clip_reso = 224
+        #     self.clip_render_size = 64
+        #     self.enable_clip_text = cfgs.get('enable_clip_text', False)
+        #     if self.enable_clip_text:
+        #         self.clip_text_feature = {}
+        #         for category_name in ['bear', 'elephant', 'horse', 'sheep', 'cow', 'zebra', 'giraffe']:
+        #             text_input = clip.tokenize(['A photo of ' + category_name]).to(self.device)
+        #             text_feature = self.clip_model.encode_text(text_input).detach()  # [1, 512]
+        #             self.clip_text_feature.update({category_name: text_feature})
 
         self.enable_disc = cfgs.get('enable_disc', False)
         if self.enable_disc:
