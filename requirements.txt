@@ -1,6 +1,5 @@
 ConfigArgParse==1.5.3
 einops==0.4.1
-faiss==1.7.3
 fire==0.5.0
 glfw==2.5.7
 gradio==4.12.0
