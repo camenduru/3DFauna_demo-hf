@@ -417,7 +417,7 @@ def save_mesh(mesh, file_path):
             print("    writing %d normals" % len(v_nrm))
             assert(len(t_pos_idx) == len(t_nrm_idx))
             for v in v_nrm:
-                f.write('vn {} {} {}\n'.format(v[0], v[1], v[2]))
+                f.write('vn {} {} {}\n'.format(v[2], v[1], v[0]))
 
         # faces
         f.write("s 1 \n")
