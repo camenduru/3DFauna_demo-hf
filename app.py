@@ -80,8 +80,18 @@ def sam_segment(predictor, input_image, *bbox_coords):
     out_image_bbox = out_image.copy()
     out_image_bbox[:, :, 3] = masks_bbox[-1].astype(np.uint8) * 255
     torch.cuda.empty_cache()
-    return Image.fromarray(out_image_bbox, mode='RGB')
-    # return Image.fromarray(out_image_bbox, mode='RGBA')
+    # return Image.fromarray(out_image_bbox, mode='RGB')
+
+    x_nonzero = np.nonzero(masks_bbox[-1].astype(np.uint8).sum(axis=0))
+    y_nonzero = np.nonzero(masks_bbox[-1].astype(np.uint8).sum(axis=1))
+    x_min = int(x_nonzero[0].min())
+    y_min = int(y_nonzero[0].min())
+    x_max = int(x_nonzero[0].max())
+    y_max = int(y_nonzero[0].max())
+
+    out_image_bbox = out_image_bbox[y_min:y_max, x_min:x_max]
+
+    return Image.fromarray(out_image_bbox, mode='RGBA')
 
 
 def expand2square(pil_img, background_color):
@@ -113,28 +123,8 @@ def preprocess(predictor, input_image, chk_group=None, segment=False):
         x_max = int(x_nonzero[0].max())
         y_max = int(y_nonzero[0].max())
         input_image = sam_segment(predictor, input_image.convert('RGB'), x_min, y_min, x_max, y_max)
-    # Rescale and recenter
-    # if rescale:
-    #     image_arr = np.array(input_image)
-    #     in_w, in_h = image_arr.shape[:2]
-    #     out_res = min(RES, max(in_w, in_h))
-    #     ret, mask = cv2.threshold(np.array(input_image.split()[-1]), 0, 255, cv2.THRESH_BINARY)
-    #     x, y, w, h = cv2.boundingRect(mask)
-    #     max_size = max(w, h)
-    #     ratio = 0.75
-    #     side_len = int(max_size / ratio)
-    #     padded_image = np.zeros((side_len, side_len, 4), dtype=np.uint8)
-    #     center = side_len//2
-    #     padded_image[center-h//2:center-h//2+h, center-w//2:center-w//2+w] = image_arr[y:y+h, x:x+w]
-    #     rgba = Image.fromarray(padded_image).resize((out_res, out_res), Image.LANCZOS)
-
-    #     rgba_arr = np.array(rgba) / 255.0
-    #     rgb = rgba_arr[...,:3] * rgba_arr[...,-1:] + (1 - rgba_arr[...,-1:])
-    #     input_image = Image.fromarray((rgb * 255).astype(np.uint8))
-    # else:
-    #     input_image = expand2square(input_image, (127, 127, 127, 0))
     
-    input_image = expand2square(input_image, (0, 0, 0))
+    input_image = expand2square(input_image, (0, 0, 0, 0))
     return input_image, input_image.resize((256, 256), Image.Resampling.LANCZOS)
 
 
@@ -545,7 +535,7 @@ def run_pipeline(model_items, cfgs, input_img):
         mesh_image = save_images(shading, mask_pred)
         mesh_bones_image = save_images(image_with_bones, mask_final)
 
-        shape_glb, shape_obj = process_mesh(shape, 'reconstruced_shape')
+        shape_glb, shape_obj = process_mesh(shape, 'reconstructed_shape')
         base_shape_glb, base_shape_obj = process_mesh(prior_shape, 'reconstructed_base_shape')
 
         return mesh_image, mesh_bones_image, shape_glb, shape_obj, base_shape_glb, base_shape_obj
