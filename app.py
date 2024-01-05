@@ -644,14 +644,16 @@ def run_demo():
                     # crop_size = 192
                 run_btn = gr.Button('Reconstruct', variant='primary', interactive=True)
         with gr.Row():
-            view_1 = gr.Image(interactive=False, height=256, show_label=False)
-            view_2 = gr.Image(interactive=False, height=256, show_label=False)
+            view_1 = gr.Image(label="Input View Reconstruction", interactive=False, height=256, show_label=True)
+            view_2 = gr.Image(label="Input View Reconstruction with Skeleton", interactive=False, height=256, show_label=True)
         with gr.Row():
-            shape_1 = gr.Model3D(clear_color=[0.0, 0.0, 0.0, 0.0],  height=512, label="Reconstructed Model")
-            shape_1_download = gr.File(label="Download Full Reconstructed Model")
+            shape_1 = gr.Model3D(clear_color=[0.0, 0.0, 0.0, 0.0],  height=512, label="Reconstructed Shape")
+            shape_2 = gr.Model3D(clear_color=[0.0, 0.0, 0.0, 0.0],  height=512, label="Reconstructed Base Shape")
+            #shape_1_download = gr.File(label="Download Full Reconstructed Model")
         with gr.Row():
-            shape_2 = gr.Model3D(clear_color=[0.0, 0.0, 0.0, 0.0],  height=512, label="Bank Base Shape Model")
-            shape_2_download = gr.File(label="Download Full Bank Base Shape Model")
+            # shape_2 = gr.Model3D(clear_color=[0.0, 0.0, 0.0, 0.0],  height=512, label="Bank Base Shape Model")
+            shape_1_download = gr.File(label="Download Reconstructed Shape")
+            shape_2_download = gr.File(label="Download Reconstructed Base Shape")
 
         run_btn.click(fn=partial(preprocess, predictor), 
                         inputs=[input_image, input_processing], 

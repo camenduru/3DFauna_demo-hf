@@ -9,7 +9,8 @@ neural_renderer
 *.zip
 unchanged/
 
-
+*.glb
+*.obj
 .vscode
 .vscode/
 
