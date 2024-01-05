@@ -91,7 +91,12 @@ def sam_segment(predictor, input_image, *bbox_coords):
 
     out_image_bbox = out_image_bbox[y_min:y_max, x_min:x_max]
 
-    return Image.fromarray(out_image_bbox, mode='RGBA')
+    out_image_valid = np.concatenate([
+        out_image_bbox[:, :, :3],
+        np.ones_like(out_image_bbox[:, :, 3:]) * 255
+    ], axis=-1)
+
+    return Image.fromarray(out_image_valid, mode='RGBA')
 
 
 def expand2square(pil_img, background_color):
@@ -124,7 +129,7 @@ def preprocess(predictor, input_image, chk_group=None, segment=False):
         y_max = int(y_nonzero[0].max())
         input_image = sam_segment(predictor, input_image.convert('RGB'), x_min, y_min, x_max, y_max)
     
-    input_image = expand2square(input_image, (0, 0, 0, 0))
+    input_image = expand2square(input_image, (0, 0, 0, 255))
     return input_image, input_image.resize((256, 256), Image.Resampling.LANCZOS)
 
 
@@ -448,7 +453,11 @@ def process_mesh(shape, name):
         process=False,  
         maintain_order=True
     )
-    mesh_tri.visual.vertex_colors = (mesh.v_nrm[0][..., [2,1,0]].detach().cpu().numpy() + 1.0) * 0.5 * 255.0
+
+    norm_colors = (mesh.v_nrm[0][..., [2,1,0]].detach().cpu().numpy() + 1.0) * 0.5 * 1.8 * 255.0
+    norm_colors = np.clip(norm_colors, 0, 255)
+
+    mesh_tri.visual.vertex_colors = norm_colors
     mesh_tri.export(file_obj=output_glb)
 
     return output_glb, output_obj
